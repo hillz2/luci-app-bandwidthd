@@ -28,16 +28,24 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # Updated step: Copy only necessary files
+      # Optional: Uncomment to debug directory contents
+      # - name: Debug repository contents
+      #   run: ls -la
+
       - name: Prepare package source
         run: |
           mkdir -p sdk/package/luci-app-bandwidthd
-          cp -r Makefile luci sdk/package/luci-app-bandwidthd/
+          # Copy all files and directories except 'sdk'
+          for item in *; do
+            if [ "$item" != "sdk" ]; then
+              cp -r "$item" sdk/package/luci-app-bandwidthd/
+            fi
+          done
           cd sdk
-          # Optional: Add to feeds if needed (can skip if building directly from package/)
-          echo "src-git luci-app-bandwidthd https://github.com/AlexZhuo/luci-app-bandwidthd.git" >> feeds.conf.default
-          ./scripts/feeds update -a
-          ./scripts/feeds install -p luci-app-bandwidthd
+          # Optional: Update feeds (uncomment if needed)
+          # echo "src-git luci-app-bandwidthd https://github.com/AlexZhuo/luci-app-bandwidthd.git" >> feeds.conf.default
+          # ./scripts/feeds update -a
+          # ./scripts/feeds install -p luci-app-bandwidthd
 
       - name: Build IPK
         run: |

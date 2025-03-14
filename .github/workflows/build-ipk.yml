@@ -28,10 +28,6 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # Optional: Uncomment to debug directory contents
-      # - name: Debug repository contents
-      #   run: ls -la
-
       - name: Prepare package source
         run: |
           mkdir -p sdk/package/luci-app-bandwidthd
@@ -42,10 +38,14 @@ jobs:
             fi
           done
           cd sdk
-          # Optional: Update feeds (uncomment if needed)
-          # echo "src-git luci-app-bandwidthd https://github.com/AlexZhuo/luci-app-bandwidthd.git" >> feeds.conf.default
-          # ./scripts/feeds update -a
-          # ./scripts/feeds install -p luci-app-bandwidthd
+          # Ensure LuCI feed is installed
+          ./scripts/feeds install luci
+
+      - name: Build LuCI tools
+        run: |
+          cd sdk
+          # Build luci-base to ensure po2lmo is available
+          make package/luci-base/compile V=s
 
       - name: Build IPK
         run: |

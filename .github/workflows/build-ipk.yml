@@ -1,0 +1,63 @@
+name: Build luci-app-bandwidthd IPK
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up OpenWrt SDK
+      - name: Set up OpenWrt SDK
+        run: |
+          # Install dependencies
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev gawk git unzip wget python3
+          
+          # Download OpenWrt SDK (example for 23.05.2, adjust version as needed)
+          wget https://downloads.openwrt.org/releases/23.05.2/targets/x86/64/openwrt-sdk-23.05.2-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          tar -xJf openwrt-sdk-23.05.2-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          mv openwrt-sdk-23.05.2-x86-64_gcc-12.3.0_musl.Linux-x86_64 sdk
+          
+          # Update feeds
+          cd sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      # Step 3: Copy the luci-app-bandwidthd source into the SDK
+      - name: Prepare package source
+        run: |
+          cp -r . sdk/package/luci-app-bandwidthd
+          cd sdk
+          
+          # Ensure the package is selectable in menuconfig (optional, can be skipped if already in feeds)
+          echo "src-git luci-app-bandwidthd https://github.com/AlexZhuo/luci-app-bandwidthd.git" >> feeds.conf.default
+          ./scripts/feeds update -a
+          ./scripts/feeds install -p luci-app-bandwidthd
+
+      # Step 4: Build the package
+      - name: Build IPK
+        run: |
+          cd sdk
+          # Configure the build (select luci-app-bandwidthd)
+          make defconfig
+          # Compile the package with verbose output
+          make package/luci-app-bandwidthd/compile V=s
+
+      # Step 5: Locate and upload the .ipk file
+      - name: Upload IPK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-bandwidthd-ipk
+          path: sdk/bin/packages/*/base/luci-app-bandwidthd_*.ipk
